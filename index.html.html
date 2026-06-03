@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Recovery UNO Game</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1rem; }
+    .container { max-width: 800px; margin: 0 auto; }
+    
+    #setupScreen, #gameScreen, #endScreen { padding: 2rem; text-align: center; }
+    
+    h1 { font-size: 32px; margin: 1rem 0; color: #333; }
+    p { color: #666; margin: 1rem 0; }
+    
+    button { 
+      padding: 12px 24px; 
+      margin: 8px; 
+      font-size: 14px; 
+      background: #3498db; 
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover { background: #2980b9; }
+    
+    .section { background: white; border-radius: 12px; padding: 1.5rem; margin: 1rem 0; }
+    .bin-card { 
+      width: 120px; 
+      height: 160px; 
+      margin: 0 auto 1rem;
+      border-radius: 12px;
+      background: #34495e;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: 3px solid white;
+    }
+    
+    .cards-display {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 1rem 0;
+    }
+    
+    .card {
+      width: 100px;
+      height: 140px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 3px solid transparent;
+      font-size: 36px;
+    }
+    
+    .card-trash { background: #e74c3c; color: white; }
+    .card-wildlife { background: #27ae60; color: white; }
+    .card-selected { border: 4px solid #FFD700; transform: scale(1.08); box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+    
+    .player-status {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin: 1rem 0;
+    }
+    
+    .player-info {
+      padding: 1rem;
+      background: #ecf0f1;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .points { font-size: 18px; font-weight: bold; color: #27ae60; }
+    .label { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 0.5rem; }
+    
+    #setup-text { font-size: 72px; }
+    #win-emoji { font-size: 64px; }
+    
+    @keyframes extinction {
+      0% { opacity: 1; transform: scale(1) rotate(0deg); }
+      50% { opacity: 0.5; filter: grayscale(100%); }
+      100% { opacity: 0; transform: scale(0) rotate(180deg); }
+    }
+    
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-60px) scale(1.5); }
+    }
+    
+    @keyframes pointPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    
+    .extinct-card {
+      animation: extinction 1s ease-out forwards;
+    }
+    
+    .float-points {
+      position: fixed;
+      font-weight: bold;
+      font-size: 24px;
+      pointer-events: none;
+      animation: floatUp 1.5s ease-out forwards;
+      z-index: 1000;
+    }
+    
+    .point-glow {
+      animation: pointPulse 0.6s ease-out;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+<div id="instructionsScreen" style="display: none; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem;">
+  <div class="container" style="max-width: 600px;">
+    
+    <div style="text-align: center; margin-bottom: 3rem;">
+      <div style="font-size: 64px; margin-bottom: 1rem;">🌍</div>
+      <h1 style="font-size: 36px; color: white; margin: 0; font-weight: bold;">Recovery UNO</h1>
+      <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-top: 0.5rem;">Learn how to play & save endangered species</p>
+    </div>
+
+    <style>
+      .instruction-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .instruction-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+      }
+      .instruction-card h3 {
+        margin: 0 0 0.8rem 0;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+      }
+      .instruction-card p {
+        margin: 0.5rem 0;
+        line-height: 1.6;
+        color: #333;
+        font-size: 14px;
+      }
+      .instruction-card .highlight {
+        font-weight: bold;
+        color: #667eea;
+      }
+    </style>
+
+    <div class="instruction-card">
+      <h3>🔴 Trash Cards</h3>
+      <p>Discard trash to clean the environment.</p>
+      <p><span class="highlight">Points:</span> 0 (no rewards)</p>
+      <p style="color: #666; font-size: 13px; margin-top: 0.8rem;">Select → Click "Play" → Gone!</p>
+    </div>
+
+    <div class="instruction-card">
+      <h3>🟢 Wildlife Cards</h3>
+      <p>When you play trash, you earn random wildlife.</p>
+      <p><span class="highlight">Points:</span> 1-7 (varies by species)</p>
+      <p style="color: #666; font-size: 13px; margin-top: 0.8rem;">Same trash = different rewards!</p>
+    </div>
+
+    <div class="instruction-card">
+      <h3>🐼 Endangered Animals</h3>
+      <p>Rare animals you can sacrifice for power.</p>
+      <p><span class="highlight">Points:</span> +10, -5 cost, clears 3 trash</p>
+      <p style="color: #666; font-size: 13px; margin-top: 0.8rem;">Use once → disappears forever</p>
+    </div>
+
+    <div class="instruction-card">
+      <h3>📦 Change Bin</h3>
+      <p>Can't match? Rotate to next bin type.</p>
+      <p><span class="highlight">Cost:</span> Draw 1 extra trash card</p>
+      <p style="color: #666; font-size: 13px; margin-top: 0.8rem;">Strategy: adapt or pay the price</p>
+    </div>
+
+    <div class="instruction-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: 2px solid white;">
+      <h3 style="color: white;">🏆 Win Conditions</h3>
+      <p style="color: rgba(255,255,255,0.95);"><span class="highlight" style="color: #FFD700;">⚡ First to Finish:</span> Discard all trash first → <span style="color: #FFD700; font-weight: bold;">+20 Points!</span></p>
+      <p style="color: rgba(255,255,255,0.95);"><span class="highlight" style="color: #27ae60;">🐼 Conservation Bonus:</span> Keep all 4 endangered animals → <span style="color: #27ae60; font-weight: bold;">+50 Points!</span></p>
+      <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin-top: 0.8rem;">💡 Speed wins +20. Conservation wins +50. Which strategy will YOU choose?</p>
+    </div>
+
+    <button onclick="startGameAfterInstructions()" style="width: 100%; padding: 1rem 2rem; margin-top: 2rem; font-size: 16px; background: white; color: #667eea; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 20px rgba(0,0,0,0.2); transition: all 0.2s;">
+      ✅ I Understand - Start Game!
+    </button>
+    
+    <p style="text-align: center; color: rgba(255,255,255,0.8); font-size: 12px; margin-top: 1.5rem;">Good luck saving the planet! 🌍💚</p>
+  </div>
+</div>
+
+<div id="setupScreen" style="display: flex; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); align-items: center; justify-content: center; padding: 2rem;">
+  <div class="container" style="max-width: 500px; text-align: center;">
+    
+    <div style="background: white; border-radius: 20px; padding: 3rem 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+      <div style="font-size: 80px; margin-bottom: 1.5rem;">🌍</div>
+      
+      <h1 style="font-size: 42px; color: #333; margin: 0 0 0.5rem 0; font-weight: bold;">Recovery UNO</h1>
+      
+      <p style="color: #666; font-size: 16px; margin: 0 0 2rem 0; line-height: 1.6;">
+        Clean up trash. Save endangered species. <br>
+        <span style="color: #667eea; font-weight: bold;">One game, one planet.</span>
+      </p>
+      
+      <div style="background: #f8f9ff; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+        <p style="color: #667eea; font-size: 14px; font-weight: bold; margin: 0 0 0.5rem 0;">SELECT PLAYERS</p>
+        <p style="color: #666; font-size: 13px; margin: 0;">Choose how many players (you'll play as "You")</p>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+        <button onclick="initGame(2)" style="padding: 1.2rem 1rem; font-size: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);">
+          👥 2 Players
+        </button>
+        <button onclick="initGame(3)" style="padding: 1.2rem 1rem; font-size: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);">
+          👥 3 Players
+        </button>
+        <button onclick="initGame(4)" style="padding: 1.2rem 1rem; font-size: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);">
+          👥 4 Players
+        </button>
+      </div>
+      
+      <p style="color: #999; font-size: 12px; margin: 0;">💡 Learn the rules on the next screen</p>
+    </div>
+    
+  </div>
+</div>
+
+<div id="gameScreen" style="display: none; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem 1rem;">
+  <div class="container" style="max-width: 700px;">
+  
+  <!-- Current Player & Bin -->
+  <div style="text-align: center; color: white; margin-bottom: 2rem;">
+    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-bottom: 0.5rem;">Current Turn</div>
+    <div id="currentPlayer" style="font-size: 32px; font-weight: bold;">Player 1</div>
+  </div>
+
+  <!-- Current Bin Card -->
+  <div style="text-align: center; margin-bottom: 2rem;">
+    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.8); margin-bottom: 1rem;">Match This Bin</div>
+    <div id="binCard" style="width: 140px; height: 180px; margin: 0 auto; border-radius: 16px; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 60px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 4px solid white;">
+      🔵
+    </div>
+  </div>
+
+  <!-- Trash Cards Section -->
+  <div style="background: white; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #667eea; font-weight: bold; margin-bottom: 1rem;">Your Trash Cards</div>
+    <div id="trashDisplay" class="cards-display" style="margin-bottom: 1.5rem;"></div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem;">
+      <button onclick="playTrash()" style="padding: 0.9rem; background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 13px; box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);">Play Trash</button>
+      <button onclick="playWildCard()" style="padding: 0.9rem; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 13px; box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);" id="wildBtn">Sacrifice</button>
+      <button onclick="changeBin()" style="padding: 0.9rem; background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 13px; box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);">Change Bin</button>
+    </div>
+  </div>
+
+  <!-- Wildlife Cards Section -->
+  <div style="background: white; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #667eea; font-weight: bold; margin-bottom: 1rem;">Your Wildlife Rewards</div>
+    <div id="wildlifeDisplay" class="cards-display" style="margin-bottom: 1.5rem;"></div>
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 1rem; text-align: center;">
+      <div style="font-size: 12px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.3rem;">Total Points</div>
+      <div id="pointsDisplay" style="font-size: 36px; font-weight: bold; color: #FFD700;">0</div>
+    </div>
+  </div>
+
+  <!-- Player Status -->
+  <div style="background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #667eea; font-weight: bold; margin-bottom: 1rem;">Players Status</div>
+    <div id="playerStatus" class="player-status"></div>
+  </div>
+  
+  </div>
+</div>
+
+<div id="endScreen" style="display: none; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem 1rem; align-items: center; justify-content: center;">
+  <div class="container" style="max-width: 600px;">
+    
+    <div style="background: white; border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center;">
+      <div style="font-size: 80px; margin-bottom: 1.5rem;">🏆</div>
+      
+      <h1 id="winnerText" style="font-size: 32px; color: #333; margin: 0 0 2rem 0; font-weight: bold;">You Won!</h1>
+      
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 2rem; color: white; margin-bottom: 2rem;">
+        <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-bottom: 1rem;">Final Scores</div>
+        <div id="scores" style="font-size: 16px; line-height: 2.2; text-align: center;"></div>
+      </div>
+      
+      <button onclick="resetGame()" style="width: 100%; padding: 1.2rem; font-size: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4); transition: all 0.2s;">
+        🔄 Play Again
+      </button>
+    </div>
+    
+  </div>
+</div>
+
+</div>
+
+<script>
+const TRASH_TYPES = ['plastic', 'cigarette', 'food', 'microplastic'];
+const TRASH_ICONS = { plastic: '🔵', cigarette: '🚬', food: '🍔', microplastic: '🔬' };
+const BIN_TYPES = ['plastic', 'cigarette', 'food', 'microplastic'];
+const BIN_ICONS = { plastic: '🔵', cigarette: '🚬', food: '🍔', microplastic: '🔬' };
+const BIN_NAMES = { plastic: 'Plastic', cigarette: 'Cigarette', food: 'Food', microplastic: 'Microplastic' };
+
+const WILDLIFE = [
+  { name: 'Ant', emoji: '🐜', points: 1 },
+  { name: 'Butterfly', emoji: '🦋', points: 2 },
+  { name: 'Fish', emoji: '🐟', points: 3 },
+  { name: 'Duck', emoji: '🦆', points: 4 },
+  { name: 'Turtle', emoji: '🐢', points: 5 },
+  { name: 'Eagle', emoji: '🦅', points: 6 },
+  { name: 'Whale', emoji: '🐋', points: 7 }
+];
+
+const ENDANGERED = [
+  { name: 'Panda', emoji: '🐼', points: 10, isWild: true },
+  { name: 'Elephant', emoji: '🐘', points: 10, isWild: true },
+  { name: 'Tiger', emoji: '🐯', points: 10, isWild: true },
+  { name: 'Rhino', emoji: '🦏', points: 10, isWild: true }
+];
+
+let game = {
+  players: [],
+  currentPlayer: 0,
+  trashDeck: [],
+  wildlifeDeck: [],
+  currentBin: null,
+  selectedTrash: null,
+  firstFinisher: null
+};
+
+function createTrashDeck() {
+  let deck = [];
+  for (let type of TRASH_TYPES) {
+    for (let i = 0; i < 8; i++) {
+      deck.push({ type });
+    }
+  }
+  return deck.sort(() => Math.random() - 0.5);
+}
+
+function createWildlifeDeck() {
+  let deck = [];
+  // Regular wildlife (less common now)
+  for (let i = 0; i < 15; i++) {
+    const wildlife = WILDLIFE[Math.floor(Math.random() * WILDLIFE.length)];
+    deck.push(wildlife);
+  }
+  // Endangered animals (wild cards - more frequent!)
+  for (let i = 0; i < 8; i++) {
+    const endangered = ENDANGERED[Math.floor(Math.random() * ENDANGERED.length)];
+    deck.push(endangered);
+  }
+  return deck.sort(() => Math.random() - 0.5);
+}
+
+function resetGame() {
+  // Hide all screens except setup
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('instructionsScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'none';
+  document.getElementById('endScreen').style.display = 'none';
+  
+  // Reset game state
+  game = {
+    players: [],
+    currentPlayer: 0,
+    trashDeck: [],
+    wildlifeDeck: [],
+    currentBin: null,
+    selectedTrash: null,
+    firstFinisher: null
+  };
+  
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+function initGame(numPlayers) {
+  game.players = [];
+  game.trashDeck = createTrashDeck();
+  game.wildlifeDeck = createWildlifeDeck();
+  
+  for (let i = 0; i < numPlayers; i++) {
+    const hand = [];
+    for (let j = 0; j < 7; j++) {
+      if (game.trashDeck.length > 0) hand.push(game.trashDeck.pop());
+    }
+    game.players.push({
+      name: i === 0 ? 'You' : 'Player ' + (i + 1),
+      trashHand: hand,
+      wildlifeHand: [],
+      points: 0,
+      endangeredUsed: 0
+    });
+  }
+  
+  game.currentBin = BIN_TYPES[Math.floor(Math.random() * BIN_TYPES.length)];
+  game.currentPlayer = 0;
+  game.selectedTrash = null;
+  
+  // SHOW INSTRUCTIONS FIRST
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('instructionsScreen').style.display = 'block';
+}
+
+function startGameAfterInstructions() {
+  // NOW show the actual game
+  document.getElementById('instructionsScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'block';
+  render();
+}
+
+function canPlayTrash(card) {
+  return card.type === game.currentBin;
+}
+
+function showExtinctionAnimation(card) {
+  const extinct = document.createElement('div');
+  extinct.style.position = 'fixed';
+  extinct.style.top = '50%';
+  extinct.style.left = '50%';
+  extinct.style.transform = 'translate(-50%, -50%)';
+  extinct.style.fontSize = '80px';
+  extinct.style.zIndex = '999';
+  extinct.style.animation = 'extinction 1s ease-out forwards';
+  extinct.textContent = card.emoji;
+  document.body.appendChild(extinct);
+  setTimeout(() => extinct.remove(), 1000);
+}
+
+function showFloatingPoints(text, color, delay = 0) {
+  setTimeout(() => {
+    const float = document.createElement('div');
+    float.className = 'float-points';
+    float.textContent = text;
+    float.style.color = color;
+    float.style.left = Math.random() * 200 + 'px';
+    float.style.top = window.innerHeight / 2 + 'px';
+    document.body.appendChild(float);
+    setTimeout(() => float.remove(), 1500);
+  }, delay);
+}
+
+function animatePointsUpdate() {
+  const pointsDisplay = document.getElementById('pointsDisplay');
+  pointsDisplay.classList.add('point-glow');
+  setTimeout(() => pointsDisplay.classList.remove('point-glow'), 600);
+}
+
+function selectTrash(idx) {
+  game.selectedTrash = game.selectedTrash === idx ? null : idx;
+  render();
+}
+
+function playWildCard() {
+  const player = game.players[game.currentPlayer];
+  const endangeredIdx = player.wildlifeHand.findIndex(c => c.isWild);
+  
+  if (endangeredIdx === -1) {
+    alert('You have no endangered animals to use!');
+    return;
+  }
+  
+  if (game.selectedTrash === null) {
+    alert('Select a trash card to discard!');
+    return;
+  }
+  
+  // Get the card info before removing
+  const endangeredCard = player.wildlifeHand[endangeredIdx];
+  
+  // SHOW EXTINCTION ANIMATION
+  showExtinctionAnimation(endangeredCard);
+  
+  // REMOVE the endangered animal from hand (SACRIFICE IT!)
+  player.wildlifeHand.splice(endangeredIdx, 1);
+  
+  // Get cascade benefit
+  player.points += 10;
+  showFloatingPoints('+10', '#27ae60', 100);
+  
+  // Cost penalty
+  player.points -= 5;
+  setTimeout(() => showFloatingPoints('-5', '#e74c3c', 150), 300);
+  
+  // Discard the selected trash card
+  player.trashHand.splice(game.selectedTrash, 1);
+  
+  // CASCADE EFFECT: Clear 2 random additional trash cards!
+  const cascadeCount = Math.min(2, player.trashHand.length);
+  for (let i = 0; i < cascadeCount; i++) {
+    const randomIdx = Math.floor(Math.random() * player.trashHand.length);
+    player.trashHand.splice(randomIdx, 1);
+  }
+  
+  // Visual feedback - EXTINCTION MESSAGE
+  setTimeout(() => {
+    if (cascadeCount > 0) {
+      alert(`⚠️ EXTINCTION! You sacrificed ${endangeredCard.emoji} ${endangeredCard.name}!\n\nCleared ${cascadeCount + 1} trash cards\n\n😢 One species lost forever...`);
+    }
+  }, 600);
+  
+  game.selectedTrash = null;
+  
+  setTimeout(() => {
+    if (player.trashHand.length === 0) {
+      endGame();
+    } else {
+      game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
+      render();
+    }
+  }, 1200);
+}
+
+function playTrash() {
+  if (game.selectedTrash === null) {
+    alert('Select a card first!');
+    return;
+  }
+  
+  const player = game.players[game.currentPlayer];
+  const card = player.trashHand[game.selectedTrash];
+  
+  if (!canPlayTrash(card)) {
+    alert('Card does not match current bin!');
+    return;
+  }
+  
+  player.trashHand.splice(game.selectedTrash, 1);
+  
+  // Draw wildlife card
+  if (game.wildlifeDeck.length > 0) {
+    const wildlife = game.wildlifeDeck.pop();
+    player.wildlifeHand.push(wildlife);
+    player.points += wildlife.points;
+    
+    // FLOATING POINTS ANIMATION
+    const pointText = '+' + wildlife.points;
+    const pointColor = wildlife.isWild ? '#FF6B6B' : '#27ae60';
+    showFloatingPoints(pointText, pointColor, 200);
+    
+    // Brief pause for animation
+    setTimeout(() => {
+      animatePointsUpdate();
+    }, 250);
+  }
+  
+  game.selectedTrash = null;
+  
+  if (player.trashHand.length === 0) {
+    setTimeout(() => endGame(), 500);
+    return;
+  }
+  
+  setTimeout(() => {
+    game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
+    render();
+  }, 800);
+}
+
+function changeBin() {
+  const player = game.players[game.currentPlayer];
+  
+  const currentIdx = BIN_TYPES.indexOf(game.currentBin);
+  game.currentBin = BIN_TYPES[(currentIdx + 1) % BIN_TYPES.length];
+  
+  // COST: Draw 1 extra trash card
+  if (game.trashDeck.length > 0) {
+    player.trashHand.push(game.trashDeck.pop());
+    showFloatingPoints('📦 +1 TRASH (Policy Cost)', '#e74c3c', 100);
+    alert('📦 Policy change cost: You drew 1 extra trash card!');
+  }
+  
+  game.selectedTrash = null;
+  
+  setTimeout(() => {
+    game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
+    render();
+  }, 600);
+}
+
+function endGame() {
+  // The player who finished first gets a bonus
+  if (!game.firstFinisher) {
+    game.firstFinisher = game.players[game.currentPlayer];
+  }
+  
+  // Calculate final scores with bonuses
+  game.players.forEach(p => {
+    // FIRST FINISHER BONUS: +20 points (fast aggressive play)
+    if (p === game.firstFinisher) {
+      p.points += 20;
+      p.firstFinisherBonus = true;
+    }
+    
+    // CONSERVATION BONUS: +50 if ALL 4 endangered survived (slow strategic play)
+    const endangeredCount = p.wildlifeHand.filter(c => c.isWild).length;
+    if (endangeredCount === 4) {
+      p.points += 50;
+      p.conservationBonus = true;
+    }
+  });
+  
+  const sorted = [...game.players].sort((a, b) => b.points - a.points);
+  document.getElementById('winnerText').textContent = sorted[0].name + ' wins with ' + sorted[0].points + ' points!';
+  
+  let scoresHTML = '';
+  sorted.forEach(p => {
+    let bonuses = '';
+    
+    if (p.firstFinisherBonus && p.conservationBonus) {
+      bonuses = ' <span style="color: #FFD700; font-weight: bold;">🏃‍♂️ +20 First! 🐼 +50 Conservation!</span>';
+    } else if (p.firstFinisherBonus) {
+      bonuses = ' <span style="color: #FFD700; font-weight: bold;">⚡ +20 First Finisher!</span>';
+    } else if (p.conservationBonus) {
+      bonuses = ' <span style="color: #27ae60; font-weight: bold;">✅ +50 Perfect Conservation 🐼🐘🐯🦏</span>';
+    } else {
+      const endangeredLeft = p.wildlifeHand.filter(c => c.isWild).length;
+      if (endangeredLeft > 0) {
+        bonuses = ` <span style="color: #f39c12;">(${endangeredLeft}/4 species)</span>`;
+      }
+    }
+    scoresHTML += `<div style="padding: 0.8rem; background: #f8f9ff; border-radius: 8px; margin-bottom: 0.8rem;">${p.name}: <strong style="font-size: 18px;">${p.points}</strong> pts${bonuses}</div>`;
+  });
+  document.getElementById('scores').innerHTML = scoresHTML;
+  
+  document.getElementById('gameScreen').style.display = 'none';
+  document.getElementById('endScreen').style.display = 'flex';
+}
+
+function render() {
+  document.getElementById('currentPlayer').textContent = game.players[game.currentPlayer].name;
+  
+  const binName = BIN_NAMES[game.currentBin];
+  document.getElementById('binCard').innerHTML = `<div>${BIN_ICONS[game.currentBin]}</div><div style="font-size: 14px; margin-top: 8px;">${binName} Bin</div>`;
+  
+  const currentPlayer = game.players[game.currentPlayer];
+  
+  let trashHTML = '';
+  for (let i = 0; i < currentPlayer.trashHand.length; i++) {
+    const card = currentPlayer.trashHand[i];
+    const trashName = card.type.charAt(0).toUpperCase() + card.type.slice(1);
+    const isSelected = game.selectedTrash === i;
+    const canPlay = canPlayTrash(card) ? '1' : '0.5';
+    trashHTML += `<div class="card card-trash ${isSelected ? 'card-selected' : ''}" onclick="selectTrash(${i})" style="opacity: ${canPlay};" title="Click to select, then click Play Trash">
+      ${TRASH_ICONS[card.type]}
+      <div style="font-size: 9px; margin-top: 8px; color: rgba(255,255,255,0.9); font-weight: bold;">${trashName}</div>
+    </div>`;
+  }
+  document.getElementById('trashDisplay').innerHTML = trashHTML || '<p style="color: #666;">No cards</p>';
+  
+  let wildlifeHTML = '';
+  for (let wildlife of currentPlayer.wildlifeHand) {
+    const borderStyle = wildlife.isWild ? 'border: 4px solid #FF6B6B; box-shadow: 0 0 15px rgba(255, 107, 107, 0.7);' : '';
+    const label = wildlife.isWild ? 'ENDANGERED ⚠️' : wildlife.name;
+    wildlifeHTML += `<div class="card card-wildlife" style="${borderStyle}" title="You earned this reward by playing trash!">
+      ${wildlife.emoji}
+      <div style="font-size: 9px; margin-top: 2px; color: rgba(255,255,255,0.9); font-weight: bold;">REWARD</div>
+      <div style="font-size: 10px; font-weight: bold; color: rgba(255,255,255,0.9);">${label}</div>
+      <div style="font-size: 16px; font-weight: bold; color: #FFD700;">+${wildlife.points} PTS</div>
+    </div>`;
+  }
+  document.getElementById('wildlifeDisplay').innerHTML = wildlifeHTML || '<p style="color: #666;">No wildlife yet - play trash to earn rewards!</p>';
+  document.getElementById('pointsDisplay').textContent = currentPlayer.points;
+  
+  // Enable/disable wild card button
+  const hasEndangered = currentPlayer.wildlifeHand.some(c => c.isWild);
+  document.getElementById('wildBtn').disabled = !hasEndangered;
+  document.getElementById('wildBtn').style.opacity = hasEndangered ? '1' : '0.5';
+  document.getElementById('wildBtn').style.cursor = hasEndangered ? 'pointer' : 'not-allowed';
+  
+  let statusHTML = '';
+  for (let player of game.players) {
+    const isCurrent = player === game.players[game.currentPlayer] ? ' 👈' : '';
+    statusHTML += `<div class="player-info">
+      <div style="font-weight: bold;">${player.name}${isCurrent}</div>
+      <div style="color: #e74c3c; font-size: 18px; font-weight: bold;">${player.trashHand.length} trash</div>
+      <div class="points">${player.points} pts</div>
+    </div>`;
+  }
+  document.getElementById('playerStatus').innerHTML = statusHTML;
+}
+</script>
+
+</body>
+</html>
